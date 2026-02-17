@@ -37,6 +37,7 @@ accessoryView's addSubview:confirmField
 
 theAlert's setAccessoryView:accessoryView
 theAlert's |window|()'s setInitialFirstResponder:passwordField
+theAlert's |window|()'s setLevel:(current application's NSModalPanelWindowLevel)
 
 set response to theAlert's runModal()
 
