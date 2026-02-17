@@ -109,11 +109,12 @@ with open(wflow_path, 'wb') as f:
 info = {
     'NSServices': [
         {
+            'NSBackgroundColorName': 'background',
+            'NSIconName': 'NSActionTemplate',
             'NSMenuItem': {
                 'default': 'パスワード付きZIP圧縮',
             },
             'NSMessage': 'runWorkflowAsService',
-            'NSRequiredContext': {},
             'NSSendFileTypes': ['public.item'],
         },
     ],
