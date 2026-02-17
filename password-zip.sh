@@ -2,31 +2,64 @@
 # パスワード付きZIP圧縮スクリプト
 # Automator クイックアクションから呼び出される
 
-# パスワード入力ダイアログを表示（Finder経由で確実にUIを表示）
-password=$(osascript <<'APPLESCRIPT'
-tell application "Finder"
-    activate
-    set dialogResult to display dialog "パスワードを入力してください:" default answer "" with hidden answer buttons {"キャンセル", "圧縮"} default button "圧縮" with title "パスワード付きZIP圧縮"
-    return text returned of dialogResult
-end tell
-APPLESCRIPT
-)
+# パスワード入力ダイアログを表示（1画面で入力＋確認）
+result=$(osascript <<'APPLESCRIPT'
+use AppleScript version "2.4"
+use scripting additions
+use framework "Foundation"
+use framework "AppKit"
 
-if [ $? -ne 0 ] || [ -z "$password" ]; then
-    exit 0
-fi
+set theApp to current application's NSApplication's sharedApplication()
+theApp's setActivationPolicy:(current application's NSApplicationActivationPolicyRegular)
+theApp's activateIgnoringOtherApps:true
 
-# パスワード確認ダイアログを表示
-password2=$(osascript <<'APPLESCRIPT'
-tell application "Finder"
-    activate
-    set dialogResult to display dialog "確認のためパスワードを再入力してください:" default answer "" with hidden answer buttons {"キャンセル", "確認"} default button "確認" with title "パスワード確認"
-    return text returned of dialogResult
-end tell
+set theAlert to current application's NSAlert's alloc()'s init()
+theAlert's setMessageText:"パスワード付きZIP圧縮"
+theAlert's setInformativeText:"パスワードを入力してください"
+theAlert's addButtonWithTitle:"圧縮"
+theAlert's addButtonWithTitle:"キャンセル"
+
+-- パスワード入力欄と確認欄を配置
+set accessoryView to current application's NSView's alloc()'s initWithFrame:(current application's NSMakeRect(0, 0, 300, 56))
+
+set passwordField to current application's NSSecureTextField's alloc()'s initWithFrame:(current application's NSMakeRect(0, 32, 300, 24))
+passwordField's setPlaceholderString:"パスワードを入力"
+
+set confirmField to current application's NSSecureTextField's alloc()'s initWithFrame:(current application's NSMakeRect(0, 0, 300, 24))
+confirmField's setPlaceholderString:"パスワードを再入力（確認）"
+
+-- Tab キーでフィールド間を移動可能にする
+passwordField's setNextKeyView:confirmField
+confirmField's setNextKeyView:passwordField
+
+accessoryView's addSubview:passwordField
+accessoryView's addSubview:confirmField
+
+theAlert's setAccessoryView:accessoryView
+theAlert's |window|()'s setInitialFirstResponder:passwordField
+
+set response to theAlert's runModal()
+
+if response is (current application's NSAlertFirstButtonReturn) then
+    set pw1 to (passwordField's stringValue()) as text
+    set pw2 to (confirmField's stringValue()) as text
+    return pw1 & linefeed & pw2
+else
+    error number -128
+end if
 APPLESCRIPT
 )
 
 if [ $? -ne 0 ]; then
+    exit 0
+fi
+
+# パスワードと確認を分離
+password="${result%%$'\n'*}"
+password2="${result#*$'\n'}"
+
+# 空パスワードチェック
+if [ -z "$password" ]; then
     exit 0
 fi
 
